@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*", "dynamic", "fighters/*", "hdr-macros", "utils"]
+members = ["crates/*", "dynamic", "hdr-macros", "utils"]
 
 resolver = "2"
 
