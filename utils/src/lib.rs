@@ -3,8 +3,7 @@
 extern crate lazy_static;
 
 pub mod offsets;
-
-mod modules;
+pub mod input;
 
 pub use utils_dyn::ext;
 pub use utils_dyn::consts;
@@ -13,11 +12,10 @@ pub use utils_dyn::util;
 
 pub use hdr_macros::*;
 
-pub use modules::*;
 
 pub fn init() {
-    modules::init();
     singletons::init();
+    input::init();
 
     std::panic::set_hook(Box::new(|info| {
         let location = info.location().unwrap();

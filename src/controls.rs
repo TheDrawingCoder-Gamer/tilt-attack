@@ -22,7 +22,7 @@ impl<T> CppVector<T> {
     }
 }
 
-const MAX_BUTTON_SIZE: usize = 8;
+const MAX_BUTTON_SIZE: usize = 7;
 
 impl<T: Copy> CppVector<T> {
     pub fn push(&mut self, value: T) {
@@ -71,7 +71,6 @@ unsafe fn get_button_label_by_operation_kind(hashed_string: &mut HashedString, o
 #[inline]
 unsafe fn append_input_vector(input_list_vector: &mut CppVector<u8>) {
    if input_list_vector.len() < MAX_BUTTON_SIZE {
-        input_list_vector.push(utils::ext::InputKind::JumpMini as u8);
         input_list_vector.push(utils::ext::InputKind::TiltAttack as u8);
         input_list_vector.push(utils::ext::InputKind::SmashAttack as u8);
    } 

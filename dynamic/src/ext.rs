@@ -7,7 +7,6 @@ use smash::app::{
 use smash::lib::{lua_const::*, *};
 use smash::lua2cpp::*;
 use smash::phx::*;
-use crate::InputModule;
 
 pub trait Vec2Ext {
     fn new(x: f32, y: f32) -> Self
@@ -109,7 +108,6 @@ pub enum CommandCat {
     Cat2(Cat2),
     Cat3(Cat3),
     Cat4(Cat4),
-    CatHdr(CatHdr),
 }
 
 impl Into<CommandCat> for Cat1 {
@@ -133,12 +131,6 @@ impl Into<CommandCat> for Cat3 {
 impl Into<CommandCat> for Cat4 {
     fn into(self) -> CommandCat {
         CommandCat::Cat4(self)
-    }
-}
-
-impl Into<CommandCat> for CatHdr {
-    fn into(self) -> CommandCat {
-        CommandCat::CatHdr(self)
     }
 }
 
@@ -271,14 +263,14 @@ bitflags! {
         const Command6N6AB          = 0x2000000;
         const Command323Catch       = 0x4000000;
     }
-
+    /*
     #[derive(Copy, Clone)]
     pub struct CatHdr: i32 {
         const Wavedash = 0x1;
         const ShieldDrop = 0x2;
         const WallJumpLeft = 0x4;
         const WallJumpRight = 0x8;
-    }
+    }*/
 
     #[derive(Copy, Clone)]
     pub struct PadFlag: i32 {
@@ -348,13 +340,13 @@ impl Cat4 {
         unsafe { Cat4::from_bits_retain(ControlModule::get_command_flag_cat(boma, 3)) }
     }
 }
-
+/*
 impl CatHdr {
     pub fn new(boma: *mut BattleObjectModuleAccessor) -> Self {
         unsafe { CatHdr::from_bits_retain(ControlModule::get_command_flag_cat(boma, 4)) }
     }
 }
-
+*/
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum AerialKind {
     Nair,
@@ -376,7 +368,6 @@ pub trait FastShift {
         &mut self,
         new_main: unsafe extern "C" fn(&mut L2CFighterBase) -> L2CValue,
     ) -> L2CValue;
-    fn change_to_custom_status(&mut self, id: i32, clear_cat: bool, common: bool);
 }
 
 impl MainShift for L2CFighterCommon {
@@ -396,22 +387,10 @@ impl FastShift for L2CFighterBase {
         unsafe { self.fastshift(L2CValue::Ptr(new_main as *const () as _)) }
     }
 
-    fn change_to_custom_status(&mut self, id: i32, clear_cat: bool, common: bool) {
-        use crate::CustomStatusModule;
-
-        let kind = if common {
-            CustomStatusModule::get_common_status_kind(self.battle_object, id)
-        } else {
-            CustomStatusModule::get_agent_status_kind(self.battle_object, id)
-        };
-
-        unsafe { self.change_status(kind.into(), clear_cat.into()) }
-    }
 }
 
 pub trait BomaExt {
     // INPUTS
-    unsafe fn clear_commands<T: Into<CommandCat>>(&mut self, fighter_pad_cmd_flag: T);
     unsafe fn is_cat_flag<T: Into<CommandCat>>(&mut self, fighter_pad_cmd_flag: T) -> bool;
     unsafe fn is_cat_flag_all<T: Into<CommandCat>>(&mut self, fighter_pad_cmd_flag: T) -> bool;
     unsafe fn is_pad_flag(&mut self, pad_flag: PadFlag) -> bool;
@@ -441,15 +420,8 @@ pub trait BomaExt {
     unsafe fn prev_left_stick_y(&mut self) -> f32;
 
     // STATE
-    unsafe fn is_status(&mut self, kind: i32) -> bool;
-    unsafe fn is_status_one_of(&mut self, kinds: &[i32]) -> bool;
-    unsafe fn is_prev_status(&mut self, kind: i32) -> bool;
-    unsafe fn is_prev_status_one_of(&mut self, kinds: &[i32]) -> bool;
-    unsafe fn is_situation(&mut self, kind: i32) -> bool;
-    unsafe fn is_prev_situation(&mut self, kind: i32) -> bool;
     unsafe fn is_motion(&mut self, motion: Hash40) -> bool;
     unsafe fn is_motion_one_of(&mut self, motions: &[Hash40]) -> bool;
-    unsafe fn status(&mut self) -> i32;
 
     /// gets the number of jumps that have been used
     unsafe fn get_num_used_jumps(&mut self) -> i32;
@@ -510,44 +482,10 @@ pub trait BomaExt {
     unsafe fn get_gravity_energy(&mut self) -> &mut FighterKineticEnergyGravity;
     unsafe fn get_controller_energy(&mut self) -> &mut FighterKineticEnergyController;
 
-    // tech/general subroutines
-    unsafe fn handle_waveland(&mut self, require_airdodge: bool) -> bool;
-    unsafe fn set_front_cliff_hangdata(&mut self, x: f32, y: f32);
-    unsafe fn set_back_cliff_hangdata(&mut self, x: f32, y: f32);
-    unsafe fn set_center_cliff_hangdata(&mut self, x: f32, y: f32);
-    unsafe fn select_cliff_hangdata_from_name(&mut self, cliff_hangdata_type: &str);
-
-    // Checks for status and enables transition to jump
-    unsafe fn check_jump_cancel(&mut self, update_lr: bool, skip_other_checks: bool) -> bool;
-    // Checks for status and enables transition to airdodge
-    unsafe fn check_airdodge_cancel(&mut self) -> bool;
-    // Checks for status and enables transition to dash
-    unsafe fn check_dash_cancel(&mut self) -> bool;
-
-    /// check for hitfall (should be called once per frame)
-    unsafe fn check_hitfall(&mut self);
-
-    /// try to pickup an item nearby
-    unsafe fn try_pickup_item(&mut self, range: f32, bone: Option<Hash40>, offset: Option<&Vector2f>) -> Option<&mut BattleObjectModuleAccessor> ;
-
     unsafe fn get_player_idx_from_boma(&mut self) -> i32;
-
-    unsafe fn is_parry_input(&mut self) -> bool;
 }
 
 impl BomaExt for BattleObjectModuleAccessor {
-    unsafe fn clear_commands<T: Into<CommandCat>>(&mut self, fighter_pad_cmd_flag: T) {
-        let cat = fighter_pad_cmd_flag.into();
-        let (cat, bits) = match cat {
-            CommandCat::Cat1(cat) => (0, cat.bits()),
-            CommandCat::Cat2(cat) => (1, cat.bits()),
-            CommandCat::Cat3(cat) => (2, cat.bits()),
-            CommandCat::Cat4(cat) => (3, cat.bits()),
-            CommandCat::CatHdr(cat) => (4, cat.bits()),
-        };
-
-        crate::modules::InputModule::clear_commands(self.object(), cat, bits);
-    }
 
     unsafe fn is_cat_flag<T: Into<CommandCat>>(&mut self, fighter_pad_cmd_flag: T) -> bool {
         let cat = fighter_pad_cmd_flag.into();
@@ -556,7 +494,6 @@ impl BomaExt for BattleObjectModuleAccessor {
             CommandCat::Cat2(cat) => Cat2::new(self).intersects(cat),
             CommandCat::Cat3(cat) => Cat3::new(self).intersects(cat),
             CommandCat::Cat4(cat) => Cat4::new(self).intersects(cat),
-            CommandCat::CatHdr(cat) => CatHdr::new(self).intersects(cat),
         }
     }
 
@@ -567,7 +504,6 @@ impl BomaExt for BattleObjectModuleAccessor {
             CommandCat::Cat2(cat) => Cat2::new(self).contains(cat),
             CommandCat::Cat3(cat) => Cat3::new(self).contains(cat),
             CommandCat::Cat4(cat) => Cat4::new(self).contains(cat),
-            CommandCat::CatHdr(cat) => CatHdr::new(self).intersects(cat),
         }
     }
 
@@ -700,32 +636,6 @@ impl BomaExt for BattleObjectModuleAccessor {
         } else {
             None
         }
-    }
-
-    unsafe fn is_status(&mut self, kind: i32) -> bool {
-        return StatusModule::status_kind(self) == kind;
-    }
-
-    unsafe fn is_status_one_of(&mut self, kinds: &[i32]) -> bool {
-        let kind = StatusModule::status_kind(self);
-        return kinds.contains(&kind);
-    }
-
-    unsafe fn is_prev_status(&mut self, kind: i32) -> bool {
-        return StatusModule::prev_status_kind(self, 0) == kind;
-    }
-
-    unsafe fn is_prev_status_one_of(&mut self, kinds: &[i32]) -> bool {
-        let kind = StatusModule::prev_status_kind(self, 0);
-        return kinds.contains(&kind);
-    }
-
-    unsafe fn is_situation(&mut self, kind: i32) -> bool {
-        return StatusModule::situation_kind(self) == kind;
-    }
-
-    unsafe fn is_prev_situation(&mut self, kind: i32) -> bool {
-        return StatusModule::prev_situation_kind(self) == kind;
     }
 
     unsafe fn is_motion(&mut self, kind: Hash40) -> bool {
@@ -919,7 +829,7 @@ impl BomaExt for BattleObjectModuleAccessor {
             KineticModule::get_energy(self, *FIGHTER_KINETIC_ENERGY_ID_CONTROL),
         )
     }
-
+    /*
     unsafe fn handle_waveland(&mut self, require_airdodge: bool) -> bool {
         // MotionModule::frame(self) > 5.0 && !WorkModule::is_flag(self, *FIGHTER_STATUS_ESCAPE_FLAG_HIT_XLU);
         if (require_airdodge && !self.is_status_one_of(&[*FIGHTER_STATUS_KIND_ESCAPE_AIR, *FIGHTER_STATUS_KIND_ESCAPE_AIR_SLIDE])) {
@@ -972,146 +882,9 @@ impl BomaExt for BattleObjectModuleAccessor {
             false
         }
     }
+    */
 
-    /// gets the current status kind for the fighter
-    unsafe fn status(&mut self) -> i32 {
-        return StatusModule::status_kind(self);
-    }
-
-    /// If update_lr is true, we set your facing direction based on your stick position
-    /// If skip_other_checks is true, we do not check for USmash
-    unsafe fn check_jump_cancel(&mut self, update_lr: bool, skip_other_checks: bool) -> bool {
-        let fighter = crate::util::get_fighter_common_from_accessor(self);
-        if fighter.is_situation(*SITUATION_KIND_GROUND) {
-            WorkModule::enable_transition_term(
-                fighter.module_accessor,
-                *FIGHTER_STATUS_TRANSITION_TERM_ID_CONT_JUMP_SQUAT,
-            );
-            WorkModule::enable_transition_term(
-                fighter.module_accessor,
-                *FIGHTER_STATUS_TRANSITION_TERM_ID_CONT_JUMP_SQUAT_BUTTON,
-            );
-            if !skip_other_checks {
-                WorkModule::enable_transition_term(
-                    fighter.module_accessor,
-                    *FIGHTER_STATUS_TRANSITION_TERM_ID_CONT_ATTACK_HI4_START,
-                );
-            }
-            if fighter.sub_transition_group_check_ground_jump_mini_attack().get_bool() // buffered aerials
-            || (!skip_other_checks && fighter.sub_transition_group_check_ground_attack().get_bool()) // up smash
-            || fighter.sub_transition_group_check_ground_jump().get_bool() // regular jumps
-            {
-                if update_lr {
-                    PostureModule::set_stick_lr(self, 0.0);
-                    PostureModule::update_rot_y_lr(self);
-                }
-                return true;
-            }
-        } else {
-            WorkModule::enable_transition_term(
-                fighter.module_accessor,
-                *FIGHTER_STATUS_TRANSITION_TERM_ID_CONT_JUMP_AERIAL,
-            );
-            WorkModule::enable_transition_term(
-                fighter.module_accessor,
-                *FIGHTER_STATUS_TRANSITION_TERM_ID_CONT_JUMP_AERIAL_BUTTON,
-            );
-            WorkModule::enable_transition_term(
-                fighter.module_accessor,
-                *FIGHTER_STATUS_TRANSITION_TERM_ID_CONT_FLY,
-            );
-            WorkModule::enable_transition_term(
-                fighter.module_accessor,
-                *FIGHTER_STATUS_TRANSITION_TERM_ID_CONT_FLY_BUTTON,
-            );
-            WorkModule::enable_transition_term(
-                fighter.module_accessor,
-                *FIGHTER_STATUS_TRANSITION_TERM_ID_CONT_FLY_NEXT,
-            );
-            if fighter
-                .sub_transition_group_check_air_jump_aerial()
-                .get_bool()
-            {
-                return true;
-            }
-        }
-        false
-    }
-
-    unsafe fn check_airdodge_cancel(&mut self) -> bool {
-        let fighter = crate::util::get_fighter_common_from_accessor(self);
-        WorkModule::enable_transition_term(
-            fighter.module_accessor,
-            *FIGHTER_STATUS_TRANSITION_TERM_ID_CONT_ESCAPE_AIR,
-        );
-        if fighter.sub_transition_group_check_air_escape().get_bool() {
-            return true;
-        }
-        false
-    }
-
-    unsafe fn check_dash_cancel(&mut self) -> bool {
-        if self.is_situation(*SITUATION_KIND_GROUND) {
-            if self.is_cat_flag(Cat1::Dash) {
-                self.change_status_req(*FIGHTER_STATUS_KIND_DASH, false);
-                return true;
-            } else if self.is_cat_flag(Cat1::TurnDash) {
-                self.change_status_req(*FIGHTER_STATUS_KIND_TURN_DASH, false);
-                return true;
-            }
-        }
-        false
-    }
-
-    /// Sets the position of the front/red ledge-grab box (see [`set_center_cliff_hangdata`](BomaExt::set_center_cliff_hangdata) for more information)
-    ///
-    /// # Arguments
-    /// * `x` - The x coordinate, relative to the [position](smash::app::lua_bind::PostureModule::pos) of the fighter
-    /// * `y` - The y coordinate, relative to the [position](smash::app::lua_bind::PostureModule::pos) of the fighter
-    unsafe fn set_front_cliff_hangdata(&mut self, x: f32, y: f32) {
-        let ground_module = *(self as *mut BattleObjectModuleAccessor as *const u64).add(0x58 / 8);
-        let ground_data = *((ground_module + 0x28) as *mut *mut f32);
-        *ground_data.add(0x530 / 4) = x;
-        *ground_data.add(0x534 / 4) = y;
-    }
-
-    /// Sets the position of the back/blue ledge-grab box (see [`set_center_cliff_hangdata`](BomaExt::set_center_cliff_hangdata) for more information)
-    ///
-    /// # Arguments
-    /// * `x` - The x coordinate, relative to the [position](smash::app::lua_bind::PostureModule::pos) of the fighter
-    /// * `y` - The y coordinate, relative to the [position](smash::app::lua_bind::PostureModule::pos) of the fighter
-    unsafe fn set_back_cliff_hangdata(&mut self, x: f32, y: f32) {
-        let ground_module = *(self as *mut BattleObjectModuleAccessor as *const u64).add(0x58 / 8);
-        let ground_data = *((ground_module + 0x28) as *mut *mut f32);
-        *ground_data.add(0x540 / 4) = x;
-        *ground_data.add(0x544 / 4) = y;
-    }
-
-    /// Sets the center position of the two ledge-grab boxes
-    ///
-    /// # Information about hang data
-    /// There are two rectangles which represent the ledge-grab data for a fighter. One of them is usually
-    /// placed behind the fighter and the other in front. For the purposes of explanation, I will refer to
-    /// the one in front as "red" and the one in the back as "blue", as those are the colors chosen
-    /// for the visualizer.
-    ///
-    /// The center position for ledge-grab boxes is a point which both the red and blue boxes have as a corner.
-    /// Both boxes meet at this location. This is usually located near the center of the fighter on the x-axis. The
-    /// location on the y-axis of the fighter depends on the fighter.
-    ///
-    /// The front and back positions (set by [`BomaExt::set_front_cliff_hangdata`] and [`BomaExt::set_back_cliff_hangdata`] respectively)
-    /// are the corners that oppose this center.
-    ///
-    /// # Arguments
-    /// * `x` - The x coordinate, relative to the [position](smash::app::lua_bind::PostureModule::pos) of the fighter
-    /// * `y` - The y coordinate, relative to the [position](smash::app::lua_bind::PostureModule::pos) of the fighter
-    unsafe fn set_center_cliff_hangdata(&mut self, x: f32, y: f32) {
-        let ground_module = *(self as *mut BattleObjectModuleAccessor as *const u64).add(0x58 / 8);
-        let ground_data = *((ground_module + 0x28) as *mut *mut f32);
-        *ground_data.add(0x520 / 4) = x;
-        *ground_data.add(0x524 / 4) = y;
-    }
-
+    /*
     unsafe fn select_cliff_hangdata_from_name(&mut self, name: &str) {
         let p1_x = crate::ParamModule::get_float(
             self.object(),
@@ -1145,110 +918,7 @@ impl BomaExt for BattleObjectModuleAccessor {
         self.set_back_cliff_hangdata((p2_x * -1.0), (p1_y - p2_y));
         self.set_center_cliff_hangdata(0.0, p2_y);
     }
-
-    /// checks whether you should hitfall (call this once per frame)
-    unsafe fn check_hitfall(&mut self) {
-        if self.is_situation(*SITUATION_KIND_AIR) && self.is_status(*FIGHTER_STATUS_KIND_ATTACK_AIR)
-        {
-            /* this is written this way because stick_y_flick wont update during
-                hitlag, which means we need a flag to allow you to hitfall 1 frame
-                after the end of hitlag as well, and we need to check previous
-                stick y directly to detect hitfall. That way, with the 5 frame buffer,
-                if you input a fastfall during hitlag, it will get registered after
-                the hitlag is over. Without the HITFALL_BUFFER flag, you have to
-                input the fastfall BEFORE you hit the move, only.
-            */
-            if !AttackModule::is_infliction_status(
-                self,
-                *COLLISION_KIND_MASK_HIT | *COLLISION_KIND_MASK_SHIELD,
-            ) || AttackModule::is_infliction(
-                self,
-                *COLLISION_KIND_MASK_HIT | *COLLISION_KIND_MASK_SHIELD,
-            ) {
-                crate::VarModule::set_int(
-                    self.object(),
-                    crate::consts::vars::common::instance::HITFALL_BUFFER,
-                    0,
-                );
-            }
-
-            if AttackModule::is_infliction_status(
-                self,
-                *COLLISION_KIND_MASK_HIT | *COLLISION_KIND_MASK_SHIELD,
-            ) {
-                crate::VarModule::inc_int(
-                    self.object(),
-                    crate::consts::vars::common::instance::HITFALL_BUFFER,
-                );
-            }
-
-            let buffer = crate::VarModule::get_int(
-                self.object(),
-                crate::consts::vars::common::instance::HITFALL_BUFFER,
-            );
-
-            if self.is_cat_flag(Cat2::FallJump) && 0 < buffer && buffer <= 5 {
-                WorkModule::on_flag(self, *FIGHTER_STATUS_WORK_ID_FLAG_RESERVE_DIVE);
-            }
-        }
-    }
-
-    unsafe fn try_pickup_item(&mut self, range: f32, bone: Option<Hash40>, offset: Option<&Vector2f>) -> Option<&mut BattleObjectModuleAccessor> {
-        use smash2::app::ItemManager;
-
-        // non fighters cant pickup items
-        if !self.is_fighter() {
-            return None;
-        }
-
-        // item manager singleton instance
-        let item_manager = ItemManager::instance().unwrap();
-
-        // if you already have an item, return that item instead
-        if ItemModule::is_have_item(self, 0) {
-            let have_id = ItemModule::get_have_item_id(self, 0);
-            let item = item_manager.find_active_item_from_id(have_id as u32) as *mut smash::app::Item;
-            let item_module_accessor = smash::app::lua_bind::Item::item_module_accessor(item) as *mut ItemModuleAccessor;
-            let item_boma = &mut (*item_module_accessor).battle_object_module_accessor;
-            return Some(item_boma);
-        }
-        
-        // get the global position of the bone, defaulting to "top"
-        let fighter_pos = &mut Vector3f{x: 0.0, y: 0.0, z: 0.0};
-        let bone_hash = bone.unwrap_or(Hash40::new("top"));
-        ModelModule::joint_global_position(self, bone_hash, fighter_pos, false);
-        // zero out the z axis
-        fighter_pos.z = 0.0;
-        match offset {
-            Some(offset) => {
-                fighter_pos.x += offset.x * PostureModule::lr(self);
-                fighter_pos.y += offset.y;
-            },
-            None => {}
-        }
-        
-        let total = item_manager.get_num_of_active_item_all();
-        for id in 0..total {
-            // pointer to the item
-            let item_ptr = item_manager.get_active_item(id as u64);
-            if item_ptr.is_null() {
-                continue;
-            }
-
-            // if this item is close to us, grab it
-            let item = item_ptr as *mut smash::app::Item;
-            let item_module_accessor = smash::app::lua_bind::Item::item_module_accessor(item) as *mut ItemModuleAccessor;
-            let item_boma = &mut (*item_module_accessor).battle_object_module_accessor;
-            let item_pos = PostureModule::pos(item_boma);
-
-            if ((*item_pos).x - (*fighter_pos).x).abs() < range
-                && ((*item_pos).y - (*fighter_pos).y).abs() < range {
-                ItemModule::have_item_instance(self, item, 0, false, false, false, false);
-                return Some(item_boma);
-            }
-        }
-        return None;
-    }
+    */
 
     unsafe fn get_player_idx_from_boma(&mut self) -> i32 {
         let control_module = *(self as *mut BattleObjectModuleAccessor as *const u64).add(0x48 / 8);
@@ -1258,10 +928,6 @@ impl BomaExt for BattleObjectModuleAccessor {
         *((next + 0x8) as *const i32)
     }
 
-    unsafe fn is_parry_input(&mut self) -> bool {
-        let buffer = if self.is_prev_status(*FIGHTER_STATUS_KIND_GUARD_DAMAGE) { 1 } else { 5 };
-        return InputModule::get_trigger_count(self.object(), Buttons::Parry) < buffer;
-    }
 }
 
 pub trait LuaUtil {
