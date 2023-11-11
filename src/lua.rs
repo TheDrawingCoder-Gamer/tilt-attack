@@ -83,9 +83,10 @@ unsafe fn set_something(arg: u64, val: u64, val2: u64);
 #[skyline::hook(offset = 0x1d32b84, inline)]
 unsafe fn setup_buttons(ctx: &skyline::hooks::InlineCtx) {
     let ptr = *ctx.registers[0].x.as_ref();
-    let ptr2 = *ctx.registers[1].x.as_ref();
+    // selected button (?)
+    let p_selected_button = *ctx.registers[1].x.as_ref();
 
-    layout_get(ptr, ptr2, 4);
+    layout_get(ptr, p_selected_button, 4);
 
     let p_vtable = **(ptr as *const *const u64).add(1);
     let func: extern "C" fn(u64, u64) =
@@ -113,7 +114,7 @@ unsafe fn setup_buttons(ctx: &skyline::hooks::InlineCtx) {
 
     *(ptr as *mut u64).add(1) = 0;
 
-    layout_get(ptr, ptr2, 6);
+    layout_get(ptr, p_selected_button, 6);
 
     let p_vtable = **(ptr as *const *const u64).add(1);
     let func: extern "C" fn(u64, u64) =
@@ -141,7 +142,7 @@ unsafe fn setup_buttons(ctx: &skyline::hooks::InlineCtx) {
 
     *(ptr as *mut u64).add(1) = 0;
 }
-
+/*
 #[skyline::hook(offset = 0x1d3339c, inline)]
 unsafe fn hijack_animation_get(ctx: &skyline::hooks::InlineCtx) {
     // this memleaks but I DON'T GIVE A FUCK (Askew: doesn't actually memleak you schmuck)
@@ -188,7 +189,7 @@ unsafe fn hijack_animation_get(ctx: &skyline::hooks::InlineCtx) {
 
     set_something(SHARED_PTR2.as_ptr() as _, CURRENT_UI_RIVALS_JUMP as _, 1);
 }
-
+*/
 // #[skyline::hook(offset = 0x1d2b470)]
 // unsafe fn get_smash_option(arg: u64, controller_id: i32) -> u8 {
 //     let id = controller_id & 3;
@@ -235,9 +236,10 @@ unsafe fn hijack_animation_get(ctx: &skyline::hooks::InlineCtx) {
 //     }
 // }
 
-static mut SHARED_PTR1: [u64; 2] = [0, 0];
-static mut SHARED_PTR2: [u64; 2] = [0, 0];
+//static mut SHARED_PTR1: [u64; 2] = [0, 0];
+//static mut SHARED_PTR2: [u64; 2] = [0, 0];
 
+/*
 #[skyline::hook(offset = 0x1d32de4, inline)]
 unsafe fn frank_talk_think_tankk(ctx: &mut skyline::hooks::InlineCtx) {
     if *ctx.registers[22].x.as_ref() == 4 {
@@ -252,10 +254,11 @@ unsafe fn frank_talk_think_tankk(ctx: &mut skyline::hooks::InlineCtx) {
         *ctx.registers[19].x.as_mut() = SHARED_PTR2.as_ptr() as u64;
     }
 }
+*/
+// static mut CURRENT_UI_PARRY_TOGGLE: bool = false;
+//static mut CURRENT_UI_RIVALS_JUMP: bool = false;
 
-static mut CURRENT_UI_PARRY_TOGGLE: bool = false;
-static mut CURRENT_UI_RIVALS_JUMP: bool = false;
-
+/*
 #[skyline::hook(offset = 0x1d2ff18, inline)]
 unsafe fn get_on_value_for_custom(ctx: &mut skyline::hooks::InlineCtx) {
     if *ctx.registers[1].x.as_ref() == 4 {
@@ -264,7 +267,8 @@ unsafe fn get_on_value_for_custom(ctx: &mut skyline::hooks::InlineCtx) {
         *ctx.registers[19].x.as_mut() = CURRENT_UI_RIVALS_JUMP as u64;
     }
 }
-
+*/
+/*
 #[skyline::hook(offset = 0x1d2ff34, inline)]
 unsafe fn get_shared_ptr_for_custom(ctx: &mut skyline::hooks::InlineCtx) {
     if *ctx.registers[8].x.as_ref() == 4 {
@@ -273,27 +277,7 @@ unsafe fn get_shared_ptr_for_custom(ctx: &mut skyline::hooks::InlineCtx) {
         *ctx.registers[20].x.as_mut() = SHARED_PTR2.as_ptr() as u64;
     }
 }
-
-#[skyline::hook(offset = 0x1d2f2cc, inline)]
-unsafe fn init_buttons_in_main_loop(ctx: &skyline::hooks::InlineCtx) {
-    let flag = *ctx.registers[1].x.as_ref() != 0;
-    let ptr = SHARED_PTR1[0];
-    let func: extern "C" fn(u64, bool) =
-        std::mem::transmute(*((*(ptr as *const u64) + 0x60) as *const u64));
-
-    func(ptr, flag);
-
-    let ptr = SHARED_PTR2[0];
-    let func: extern "C" fn(u64, bool) =
-        std::mem::transmute(*((*(ptr as *const u64) + 0x60) as *const u64));
-
-    func(ptr, flag);
-}
-
-#[skyline::hook(offset = 0x1d2f358, inline)]
-unsafe fn init_buttons_in_main_loop_again(ctx: &skyline::hooks::InlineCtx) {
-    init_buttons_in_main_loop(ctx);
-}
+*/
 
 #[skyline::hook(offset = 0x1d2f558, inline)]
 unsafe fn get_index_for_a_press(ctx: &mut skyline::hooks::InlineCtx) {
@@ -343,32 +327,32 @@ unsafe fn skip_set_setting_for_ok(ctx: &mut skyline::hooks::InlineCtx) {
 #[skyline::hook(offset = 0x1d30700, inline)]
 unsafe fn init_ui_state(ctx: &mut skyline::hooks::InlineCtx) {
     let ptr = (*ctx.registers[8].x.as_ref() as *mut u8).add(1);
-    CURRENT_UI_PARRY_TOGGLE = (*ptr >> 1) & 1 != 0;
-    CURRENT_UI_RIVALS_JUMP = (*ptr >> 2) & 1 != 0;
+    //CURRENT_UI_PARRY_TOGGLE = (*ptr >> 1) & 1 != 0;
+    //CURRENT_UI_RIVALS_JUMP = (*ptr >> 2) & 1 != 0;
     *ptr &= 1;
 }
 
 #[skyline::hook(offset = 0x1d2e8e4, inline)]
 unsafe fn exit_gc(ctx: &mut skyline::hooks::InlineCtx) {
     let ptr = (*ctx.registers[20].x.as_ref() as *mut u8).add(0xC4);
-    *ptr |= (CURRENT_UI_PARRY_TOGGLE as u8) << 1;
-    *ptr |= (CURRENT_UI_RIVALS_JUMP as u8) << 2;
+    //*ptr |= (CURRENT_UI_PARRY_TOGGLE as u8) << 1;
+    //*ptr |= (CURRENT_UI_RIVALS_JUMP as u8) << 2;
     IS_IN_UI = false;
 }
 
 #[skyline::hook(offset = 0x1d2e8b0, inline)]
 unsafe fn exit_fk(ctx: &mut skyline::hooks::InlineCtx) {
     let ptr = (*ctx.registers[20].x.as_ref() as *mut u8).add(0xE0);
-    *ptr |= (CURRENT_UI_PARRY_TOGGLE as u8) << 1;
-    *ptr |= (CURRENT_UI_RIVALS_JUMP as u8) << 2;
+    //*ptr |= (CURRENT_UI_PARRY_TOGGLE as u8) << 1;
+    //*ptr |= (CURRENT_UI_RIVALS_JUMP as u8) << 2;
     IS_IN_UI = false;
 }
 
 #[skyline::hook(offset = 0x1d2e864, inline)]
 unsafe fn exit_jc(ctx: &mut skyline::hooks::InlineCtx) {
     let ptr = (*ctx.registers[20].x.as_ref() as *mut u8).add(0xD4);
-    *ptr |= (CURRENT_UI_PARRY_TOGGLE as u8) << 1;
-    *ptr |= (CURRENT_UI_RIVALS_JUMP as u8) << 2;
+    //*ptr |= (CURRENT_UI_PARRY_TOGGLE as u8) << 1;
+    //*ptr |= (CURRENT_UI_RIVALS_JUMP as u8) << 2;
     IS_IN_UI = false;
 }
 
@@ -418,6 +402,7 @@ unsafe fn set_parry_button_shield_text(ctx: &skyline::hooks::InlineCtx) {
     }
 }
 
+
 #[skyline::hook(offset = 0x1d331a0, inline)]
 unsafe fn set_parry_button_taunt_text(ctx: &skyline::hooks::InlineCtx) {
     let sp = (ctx as *const _ as *const u8).add(0x100);
@@ -444,22 +429,22 @@ pub fn install() {
         lua_load,
         add_buttons_to_subwindow,
         frank_talk_think_tankk,
-        hijack_animation_get,
-        setup_buttons,
-        get_on_value_for_custom,
-        get_shared_ptr_for_custom,
-        init_buttons_in_main_loop,
-        init_buttons_in_main_loop_again,
-        get_index_for_a_press,
-        update_index_for_a_press,
+        //hijack_animation_get,
+        //setup_buttons,
+        //get_on_value_for_custom,
+        //get_shared_ptr_for_custom,
+        //init_buttons_in_main_loop,
+        //init_buttons_in_main_loop_again,
+        //get_index_for_a_press,
+        //update_index_for_a_press,
         set_next_button,
-        skip_set_setting_for_ok,
-        init_ui_state,
+        skip_set_setting_for_ok, // ???
+        init_ui_state, // ???
         exit_gc,
         exit_fk,
         exit_jc,
-        set_pane_text_values,
-        set_parry_button_shield_text,
-        set_parry_button_taunt_text
+        //set_pane_text_values,
+        //set_parry_button_shield_text,
+        //set_parry_button_taunt_text
     );
 }

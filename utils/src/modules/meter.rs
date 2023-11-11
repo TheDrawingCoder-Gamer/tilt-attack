@@ -7,7 +7,7 @@ use crate::ext::*;
 use crate::offsets;
 use crate::consts::*;
 use super::METER_MODULE_OFFSET;
-use super::{VarModule, ParamModule, ParamType};
+use super::VarModule;
 
 macro_rules! get_meter_module {
     ($object:ident) => {{
@@ -96,7 +96,6 @@ impl MeterModule {
             );
         }
 
-        module.remaining_show_frames = ParamModule::get_int(object, ParamType::Common, "meter_flash_frame_count");
     }
 
     #[export_name = "MeterModule__show"]

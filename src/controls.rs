@@ -22,6 +22,8 @@ impl<T> CppVector<T> {
     }
 }
 
+const MAX_BUTTON_SIZE: usize = 8;
+
 impl<T: Copy> CppVector<T> {
     pub fn push(&mut self, value: T) {
         unsafe {
@@ -66,20 +68,21 @@ unsafe fn get_button_label_by_operation_kind(hashed_string: &mut HashedString, o
         return call_original!(hashed_string, operation, arg)
     }
 }
-
+#[inline]
+unsafe fn append_input_vector(input_list_vector: &mut CppVector<u8>) {
+   if input_list_vector.len() < MAX_BUTTON_SIZE {
+        input_list_vector.push(utils::ext::InputKind::JumpMini as u8);
+        input_list_vector.push(utils::ext::InputKind::TiltAttack as u8);
+        input_list_vector.push(utils::ext::InputKind::SmashAttack as u8);
+   } 
+}
 #[skyline::hook(offset = 0x1d329e8, inline)]
 unsafe fn add_footstool_to_gc(ctx: &skyline::hooks::InlineCtx) {
     let button = *ctx.registers[25].w.as_ref();
     if ![0x3, 0x4, 0x5, 0x8].contains(&button) {
         let input_list_vector = &mut *((*ctx.registers[24].x.as_ref() + 0x148) as *mut CppVector<u8>);
-
-        if input_list_vector.len() < 9 {
-            input_list_vector.push(utils::ext::InputKind::Parry as u8);
-            input_list_vector.push(utils::ext::InputKind::JumpMini as u8);
-            input_list_vector.push(utils::ext::InputKind::TiltAttack as u8);
-            input_list_vector.push(utils::ext::InputKind::SmashAttack as u8);
-            input_list_vector.push(utils::ext::InputKind::AppealHi as u8);
-        }
+        
+        append_input_vector(input_list_vector);
     }
 }
 
@@ -90,33 +93,23 @@ unsafe fn add_footstool_to_fk(ctx: &skyline::hooks::InlineCtx) {
         return;
     }
     let input_list_vector = &mut *((*ctx.registers[24].x.as_ref() + 0x148) as *mut CppVector<u8>);
-
-    if input_list_vector.len() < 9 {
-        input_list_vector.push(utils::ext::InputKind::Parry as u8);
-        input_list_vector.push(utils::ext::InputKind::JumpMini as u8);
-        input_list_vector.push(utils::ext::InputKind::TiltAttack as u8);
-        input_list_vector.push(utils::ext::InputKind::SmashAttack as u8);
-        input_list_vector.push(utils::ext::InputKind::AppealHi as u8);
-    }
+    
+    append_input_vector(input_list_vector);
 }
 
 #[skyline::hook(offset = 0x1d3395c, inline)]
 unsafe fn add_footstool_to_jc(ctx: &skyline::hooks::InlineCtx) {
     let input_list_vector = &mut *((*ctx.registers[24].x.as_ref() + 0x148) as *mut CppVector<u8>);
     
-    if input_list_vector.len() < 9 {
-        input_list_vector.push(utils::ext::InputKind::Parry as u8);
-        input_list_vector.push(utils::ext::InputKind::JumpMini as u8);
-        input_list_vector.push(utils::ext::InputKind::TiltAttack as u8);
-        input_list_vector.push(utils::ext::InputKind::SmashAttack as u8);
-        input_list_vector.push(utils::ext::InputKind::AppealHi as u8);
-    }
+    append_input_vector(input_list_vector);
 }
 
 #[skyline::hook(offset = 0x1d34e4c, inline)]
 unsafe fn add_more_buttons(ctx: &mut skyline::hooks::InlineCtx) {
     let input_list_vector = &mut *((*ctx.registers[24].x.as_ref() + 0x148) as *mut CppVector<u8>);
+
     // panic!("{}", input_list_vector.len());
+    // ???
     *ctx.registers[25].x.as_mut() = input_list_vector.len() as u64;
 }
 

@@ -472,7 +472,7 @@ fn exec_internal(input_module: &mut InputModule, control_module: u64, call_origi
             (*input_module.owner).module_accessor,
         ))
     };
-
+    /*
     unsafe {
         // Allow Aidou with only A button held
         // Also extends directional inputs for Tilt Stick Aidou
@@ -512,7 +512,7 @@ fn exec_internal(input_module: &mut InputModule, control_module: u64, call_origi
             ControlModule::reset_flick_y((*input_module.owner).module_accessor);
         }
     }
-
+    */
     // Prevents TiltAttack button from triggering Smash attacks
     if triggered_buttons.intersects(Buttons::TiltAttack) {
         unsafe {
@@ -541,36 +541,7 @@ fn exec_internal(input_module: &mut InputModule, control_module: u64, call_origi
         input_module.hdr_cat.valid_frames[wavedash_offset] -= 1;
     }
 
-    // Rivals Wall Jump cat flag
-    let walljump_right_offset = CatHdr::WallJumpRight.bits().trailing_zeros() as usize;
-    let walljump_left_offset = CatHdr::WallJumpLeft.bits().trailing_zeros() as usize;
-    unsafe {
-        if (*input_module.owner).is_situation(*SITUATION_KIND_AIR)
-        && triggered_buttons.intersects(Buttons::Jump) {
-            if ControlModule::get_stick_x((*input_module.owner).module_accessor) > 0.0 {
-                if input_module.hdr_cat.valid_frames[walljump_right_offset] == 0 {
-                    input_module.hdr_cat.valid_frames[walljump_right_offset] = unsafe {
-                        ParamModule::get_int(&mut (*input_module.owner), ParamType::Common, "button_walljump_leniency_frame")
-                        as u8
-                    };
-                }
-            }
-            else if ControlModule::get_stick_x((*input_module.owner).module_accessor) < 0.0 {
-                if input_module.hdr_cat.valid_frames[walljump_left_offset] == 0 {
-                    input_module.hdr_cat.valid_frames[walljump_left_offset] = unsafe {
-                        ParamModule::get_int(&mut (*input_module.owner), ParamType::Common, "button_walljump_leniency_frame")
-                        as u8
-                    };
-                }
-            }
-        }
-    }
-    if input_module.hdr_cat.valid_frames[walljump_left_offset] != 0 {
-        input_module.hdr_cat.valid_frames[walljump_left_offset] -= 1;
-    }
-    if input_module.hdr_cat.valid_frames[walljump_right_offset] != 0 {
-        input_module.hdr_cat.valid_frames[walljump_right_offset] -= 1;
-    }
+
 
     // Parry cat flag
     // let parry_offset = CatHdr::Parry.bits().trailing_zeros() as usize;
@@ -590,7 +561,7 @@ fn exec_internal(input_module: &mut InputModule, control_module: u64, call_origi
     // }
 
     // ShieldDrop cat flag
-    let shielddrop_offset = CatHdr::ShieldDrop.bits().trailing_zeros() as usize;
+    /*
     let pass_flick_y = unsafe {
         WorkModule::get_param_int(
             (*input_module.owner).module_accessor,
@@ -599,60 +570,26 @@ fn exec_internal(input_module: &mut InputModule, control_module: u64, call_origi
         )
     };
     let pass_stick_y = unsafe {
-        if VarModule::is_flag(&mut (*input_module.owner), vars::common::status::ENABLE_UCF) {
-            ParamModule::get_float(
-                &mut (*input_module.owner),
-                ParamType::Common,
-                "ucf_pass_stick_y",
-            )
-        } else {
-            WorkModule::get_param_float(
-                (*input_module.owner).module_accessor,
-                hash40("common"),
-                hash40("pass_stick_y"),
-            )
-        }
+        WorkModule::get_param_float(
+            (*input_module.owner).module_accessor,
+            hash40("common"),
+            hash40("pass_stick_y"),
+        )
     };
     let escape_stick_y = unsafe {
-        if VarModule::is_flag(&mut (*input_module.owner), vars::common::status::ENABLE_UCF) {
-            ParamModule::get_float(
-                &mut (*input_module.owner),
-                ParamType::Common,
-                "ucf_escape_stick_y",
-            )
-        } else {
-            WorkModule::get_param_float(
-                (*input_module.owner).module_accessor,
-                hash40("common"),
-                hash40("escape_stick_y"),
-            )
-        }
+        WorkModule::get_param_float(
+            (*input_module.owner).module_accessor,
+            hash40("common"),
+            hash40("escape_stick_y"),
+        )
     };
-    let shielddrop_input = unsafe {
-        buttons.intersects(Buttons::Guard)
-            && ControlModule::get_flick_y((*input_module.owner).module_accessor) < pass_flick_y
-            && ControlModule::get_stick_y((*input_module.owner).module_accessor) <= pass_stick_y
-            && ControlModule::get_stick_y((*input_module.owner).module_accessor) > escape_stick_y
-    };
-    if shielddrop_input {
-        if input_module.hdr_cat.valid_frames[shielddrop_offset] == 0 {
-            input_module.hdr_cat.valid_frames[shielddrop_offset] = unsafe {
-                ControlModule::get_command_life_count_max((*input_module.owner).module_accessor)
-                    as u8
-            };
-        }
-    }
-    if input_module.hdr_cat.valid_frames[shielddrop_offset] != 0
-        && !(input_module.hdr_cat.valid_frames[shielddrop_offset] == 1 && shielddrop_input)
-    {
-        input_module.hdr_cat.valid_frames[shielddrop_offset] -= 1;
-    }
+    */
     call_original();
 
     let cats = unsafe {
         std::slice::from_raw_parts_mut((control_module + 0x568) as *mut CommandFlagCat, 4)
     };
-
+    /*
     if buttons.intersects(Buttons::RivalsWallJump) {
         unsafe {
             (*input_module.owner).clear_commands(Cat1::WallJumpLeft | Cat1::WallJumpRight);
@@ -660,6 +597,7 @@ fn exec_internal(input_module: &mut InputModule, control_module: u64, call_origi
             cats[0].lifetimes_mut()[0x1C] = input_module.hdr_cat.valid_frames[walljump_right_offset];
         }
     }
+    */
 
     let mut lifetimes = [
         cats[0].lifetimes_mut(),

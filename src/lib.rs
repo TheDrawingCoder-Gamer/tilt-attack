@@ -14,8 +14,6 @@ extern crate skyline;
 extern crate skyline_web;
 extern crate smash;
 
-mod fighters;
-
 #[cfg(feature = "main_nro")]
 mod random;
 
@@ -33,16 +31,6 @@ use skyline::libc::c_char;
 use skyline_web::*;
 use std::{fs, path::Path};
 
-#[smashline::installer]
-pub fn install() {
-    fighters::install();
-}
-
-#[cfg(not(feature = "main_nro"))]
-#[export_name = "hdr_delayed_install"]
-pub fn delayed_install() {
-    fighters::delayed_install();
-}
 
 #[cfg(feature = "add_status")]
 extern "Rust" {
@@ -382,42 +370,24 @@ unsafe fn copy_fighter_info(
 pub extern "C" fn main() {
     #[cfg(feature = "main_nro")]
     {
-        quick_validate_install();
-        skyline::install_hooks!(change_version_string_hook);
-        random::install();
         controls::install();
-        lua::install();
-        online::install();
+        // lua::install(); // no lua?
         skyline::patching::Patch::in_text(0x14f97bc).nop().unwrap();
         skyline::patching::Patch::in_text(0x1509dc4).nop().unwrap();
-        skyline::install_hooks!(
-            training_reset_music1,
-            training_reset_music2,
-            main_menu_quick,
-            title_screen_play,
-            //sss_to_css,
-            //css_to_sss,
-            //copy_fighter_info,
-            //load_ingame_call_sequence_scene,
-            //load_melee_scene,
-            //game_end,
-            //game_exit
-        );
     }
 
     #[cfg(not(feature = "runtime"))]
     {
         utils::init();
     }
-
+    /*
     #[cfg(feature = "main_nro")]
     {
         if !is_on_ryujinx() {
             setup_hid_hdr();
         }
     }
-
-    fighters::install();
+    *
     #[cfg(all(not(feature = "add_status"), feature = "main_nro"))]
     {
         if !(delayed_install as *const ()).is_null() {
@@ -425,14 +395,6 @@ pub extern "C" fn main() {
                 delayed_install();
             }
         }
-    }
-
-    #[cfg(all(
-        feature = "add_status",
-        not(all(not(feature = "add_status"), feature = "main_nro"))
-    ))]
-    {
-        fighters::delayed_install();
     }
 
     #[cfg(feature = "updater")]
@@ -445,6 +407,7 @@ pub extern "C" fn main() {
             .unwrap()
             .join();
     }
+    */
 }
 
 #[cfg(feature = "main_nro")]
